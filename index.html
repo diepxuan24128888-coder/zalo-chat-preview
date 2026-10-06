@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tin Nhắn Zalo - Troll</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { background-color: #f0f2f5; padding: 24px; }
+.workspace {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 500px);
+  gap: 24px;
+  align-items: start;
+}
+.phone-frame {
+  width: 100%;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+.preview-column { min-width: 0; }
+.preview-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+.zoom-btn {
+  border: 1px solid #d7e1ee;
+  background: #fff;
+  color: #24527f;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.zoom-btn:hover { background: #f2f7ff; }
+.preview-column.is-expanded {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: rgba(17, 24, 39, 0.72);
+}
+.preview-column.is-expanded .preview-toolbar {
+  width: min(100%, 680px);
+  margin: 0;
+}
+.preview-column.is-expanded .zoom-btn { border: 0; }
+.preview-column.is-expanded .phone-frame {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 680px);
+  height: calc(100vh - 76px);
+  max-height: 900px;
+}
+.preview-column.is-expanded .status-bar,
+.preview-column.is-expanded .header,
+.preview-column.is-expanded .input-bar { flex-shrink: 0; }
+.preview-column.is-expanded .chat-body {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
+.editor-panel {
+  background: #ffffff;
+  border: 1px solid #e9edf3;
+  border-radius: 16px;
+  box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+}
+.editor-panel h3 {
+  font-size: 20px;
+  margin: 0;
+  color: #1d2a39;
+}
+.editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #5c6470;
+}
+.editor-field input,
+.editor-field select,
+.editor-field textarea {
+  width: 100%;
+  border: 1px solid #dfe5ee;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 15px;
+  font-family: inherit;
+  background: #fff;
+}
+.editor-field textarea {
+  min-height: 62px;
+  resize: vertical;
+}
+#compose-me,
+#compose-them {
+  min-height: 48px;
+  height: 48px;
+}
+.editor-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.run-btn {
+  background: linear-gradient(135deg, #0091ff, #007bff);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.save-template-btn {
+  background: #eef4fb;
+  color: #24527f;
+  border: 1px solid #d7e1ee;
+  margin-right: auto;
+}
+.camera-btn,
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dfe5ee;
+  background: linear-gradient(135deg,#edf6ff,#dfeeff);
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #0e5ec7;
+  min-width: 42px;
+  min-height: 36px;
+}
+.camera-btn svg,
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.status-bar {
+  height: 26px;
+  background: #0b0b0e;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.status-left, .status-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-left .carrier { font-size: 11px; opacity: 0.95; }
+.status-center { font-size: 12px; }
+.status-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+#status-clock { cursor: text; }
+.status-call-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 9px;
+  padding: 2px 5px;
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.status-call-indicator[hidden] { display: none; }
+.status-bar.android .status-call-indicator {
+  background: rgba(255,255,255,0.16);
+  color: #fff;
+}
+.status-bar.ios .status-call-indicator {
+  background: rgba(17,17,17,0.08);
+  color: #111;
+}
+.status-call-indicator[data-call-type="missed"] { color: #ff7777; }
+.status-bar.ios .status-call-indicator[data-call-type="missed"] { color: #d93025; }
+.signal-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+.signal-bars span {
+  display: block;
+  width: 3px;
+  border-radius: 2px 2px 0 0;
+  background: rgba(255,255,255,0.9);
+}
+.signal-bars span:nth-child(1) { height: 4px; }
+.signal-bars span:nth-child(2) { height: 7px; }
+.signal-bars span:nth-child(3) { height: 9px; }
+.signal-bars span:nth-child(4) { height: 11px; }
+.signal-bars span:nth-child(5) { height: 12px; opacity: 0.35; }
+.wifi-icon {
+  width: 14px;
+  height: 10px;
+  border: 2px solid transparent;
+  border-top-color: #fff;
+  border-radius: 50%;
+  transform: rotate(180deg);
+  position: relative;
+  opacity: 0.9;
+}
+.wifi-icon::before {
+  content: "";
+  position: absolute;
+  inset: 2px 2px auto 2px;
+  height: 6px;
+  border: 2px solid transparent;
+  border-top-color: #fff;
+  border-radius: 50%;
+}
+.battery-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.battery {
+  width: 22px;
+  height: 11px;
+  border: 1.5px solid rgba(255,255,255,0.9);
+  border-radius: 2px;
+  position: relative;
+  display: inline-block;
+}
+.battery::before {
+  content: "";
+  position: absolute;
+  right: -4px;
+  top: 2px;
+  width: 2px;
+  height: 5px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 1px;
+}
+.battery::after {
+  content: "";
+  position: absolute;
+  inset: 1px 1px 1px 1px;
+  background: linear-gradient(90deg, #fff 0 72%, rgba(255,255,255,0.2) 72% 100%);
+  border-radius: 1px;
+}
+
+/* === Thanh trên cùng === */
+.status-bar {
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.status-bar.android {
+  background: #0b0b0e;
+  color: #fff;
+}
+.status-bar.ios {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px 14px 14px 20px;
+  column-gap: 5px;
+  position: relative;
+  height: 38px;
+  padding: 0 14px;
+  background: #fbf8ef;
+  color: #111;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.status-bar.ios .status-left { display: contents; }
+.status-bar.ios .status-left .carrier,
+.status-bar.ios .status-left #network-type { display: none; }
+.status-bar.ios .status-center {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  transform: none;
+}
+.status-bar.ios #status-clock { font-size: 11px; }
+.dynamic-island {
+  display: none;
+}
+.status-bar.ios .dynamic-island {
+  display: block;
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  align-self: center;
+  width: 48px;
+  height: 14px;
+  border-radius: 999px;
+  background: #050505;
+}
+.status-bar.ios .signal-bars {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: center;
+  height: 10px;
+  gap: 1.5px;
+}
+.status-bar.ios .signal-bars span {
+  width: 2px;
+  border-radius: 1px 1px 0 0;
+}
+.status-bar.ios .signal-bars span:nth-child(1) { height: 3px; }
+.status-bar.ios .signal-bars span:nth-child(2) { height: 5px; }
+.status-bar.ios .signal-bars span:nth-child(3) { height: 7px; }
+.status-bar.ios .signal-bars span:nth-child(4) { height: 9px; }
+.status-bar.ios .signal-bars span:nth-child(5) { display: none; }
+.status-bar.ios .status-right {
+  display: contents;
+}
+.status-bar.ios .wifi-icon {
+  grid-column: 4;
+  grid-row: 1;
+  justify-self: center;
+  display: inline-block !important;
+  width: 12px;
+  height: 9px;
+}
+.status-bar.ios .battery-wrap { gap: 3px; }
+.status-bar.ios .battery-wrap {
+  grid-column: 5;
+  grid-row: 1;
+  justify-self: end;
+}
+.status-bar.ios .battery { width: 17px; height: 9px; }
+.status-bar.ios .battery::before { top: 2px; height: 4px; }
+.status-bar.ios #battery-level { display: none; }
+.status-bar.ios .status-config-btn { display: none; }
+.status-left, .status-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-left .carrier { font-size: 11px; opacity: 0.95; }
+.status-center { font-size: 12px; }
+.signal-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+.signal-bars span {
+  display: block;
+  width: 3px;
+  border-radius: 2px 2px 0 0;
+  background: currentColor;
+  opacity: 0.92;
+}
+.signal-bars span:nth-child(1) { height: 4px; }
+.signal-bars span:nth-child(2) { height: 7px; }
+.signal-bars span:nth-child(3) { height: 9px; }
+.signal-bars span:nth-child(4) { height: 11px; }
+.signal-bars span:nth-child(5) { height: 12px; opacity: 0.35; }
+.status-bar.ios .signal-bars span { background: rgba(17,17,17,0.92); }
+.status-bar.android .signal-bars span { background: rgba(255,255,255,0.95); }
+.status-bar.ios .status-call-indicator {
+  max-width: 76px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wifi-icon {
+  width: 14px;
+  height: 10px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  transform: rotate(180deg);
+  position: relative;
+  opacity: 0.9;
+}
+.wifi-icon::before {
+  content: "";
+  position: absolute;
+  inset: 2px 2px auto 2px;
+  height: 6px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+}
+.battery-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.battery {
+  width: 22px;
+  height: 11px;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+  position: relative;
+  display: inline-block;
+}
+.battery::before {
+  content: "";
+  position: absolute;
+  right: -4px;
+  top: 2px;
+  width: 2px;
+  height: 5px;
+  background: currentColor;
+  border-radius: 1px;
+}
+.battery::after {
+  content: "";
+  position: absolute;
+  inset: 1px 1px 1px 1px;
+  background: linear-gradient(90deg, currentColor 0 72%, transparent 72% 100%);
+  border-radius: 1px;
+}
+.status-bar.android .battery::after { background: linear-gradient(90deg, #fff 0 72%, rgba(255,255,255,0.2) 72% 100%); }
+.status-bar.ios .battery::after { background: linear-gradient(90deg, #111 0 72%, rgba(17,17,17,0.2) 72% 100%); }
+.status-config-btn {
+  border: none;
+  background: rgba(255,255,255,0.12);
+  color: inherit;
+  border-radius: 999px;
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.header { background: linear-gradient(135deg, #0091ff, #007bff); color: white; padding: 12px; display: flex; align-items: center; }
+.back { margin-right: 10px; font-size: 18px; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: #ddd; margin-right: 10px; overflow: hidden; position: relative; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.header-actions { display: flex; gap: 6px; margin-left: 8px; }
+.mini-btn { background: rgba(255,255,255,0.2); border: none; color: white; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; }
+.info { flex: 1; }
+.name { font-weight: bold; font-size: 15px; }
+.status { font-size: 11px; opacity: 0.9; }
+
+/* === Nội dung tin nhắn === */
+.chat-body {
+  padding: 15px;
+  background: #fafafa;
+  height: min(58vh, 560px);
+  min-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  scroll-behavior: smooth;
+}
+.msg-row { margin: 8px 0; display: flex; flex-direction: column; min-width: 0; }
+.msg-bubble-wrap { display: flex; width: 100%; min-width: 0; }
+.msg-them { align-items: flex-start; }
+.msg-them .msg-bubble-wrap { justify-content: flex-start; }
+.msg-them .msg-content { background: #e5e6eb; color: #000; border-radius: 18px 18px 18px 4px; padding: 10px 14px; width: fit-content; max-width: 85%; min-width: 0; font-size: 14px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg-minh { align-items: flex-end; }
+.msg-minh .msg-bubble-wrap { justify-content: flex-end; }
+.msg-minh .msg-content { background: #0091ff; color: white; border-radius: 18px 18px 4px 18px; padding: 10px 14px; width: fit-content; max-width: 85%; min-width: 0; font-size: 14px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+.time-text { font-size: 10px; color: #999; margin: 2px 8px 0; }
+.inline-edit {
+  font: inherit;
+  color: inherit;
+  border: 1px solid #4d9fff;
+  border-radius: 6px;
+  padding: 2px 5px;
+  min-width: 56px;
+  outline: none;
+}
+.msg-content { cursor: text; }
+.time-text { cursor: text; }
+.call-event {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0;
+}
+.call-event-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 90%;
+  padding: 10px 14px;
+  border: 1px solid #e2e6eb;
+  border-radius: 14px;
+  background: #fff;
+  color: #263445;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.call-event-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #edf4ff;
+  color: #1976d2;
+  font-size: 18px;
+}
+.call-event[data-call-type="missed"] .call-event-icon {
+  background: #fff0f0;
+  color: #d93025;
+}
+.call-event-copy { display: grid; gap: 2px; }
+.call-event-title { font-size: 13px; font-weight: 600; }
+.call-event-time { font-size: 11px; color: #788391; }
+.chat-context-menu {
+  position: fixed;
+  z-index: 2000;
+  min-width: 120px;
+  padding: 5px;
+  border: 1px solid #e2e6eb;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+}
+.chat-context-menu[hidden] { display: none; }
+.chat-context-menu button {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #c62828;
+  text-align: left;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.chat-context-menu button:hover,
+.chat-context-menu button:focus-visible { background: #fff0f0; outline: none; }
+
+/* === Thanh gõ tin nhắn === */
+.input-bar { display: flex; align-items: center; padding: 10px; border-top: 1px solid #eee; background: white; }
+.input-bar input { flex: 1; min-width: 0; height: 48px; border: 1px solid #ddd; border-radius: 24px; padding: 10px 16px; outline: none; font-size: 16px; margin: 0 8px; }
+.icon { font-size: 20px; color: #666; padding: 0 5px; }
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: #666;
+  min-width: auto;
+  min-height: auto;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.send-btn { background: #0091ff; color: white; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 14px; }
+.hidden-input { display: none; }
+.drop-zone {
+  position: absolute;
+  inset: 12px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #66a9ff;
+  border-radius: 16px;
+  background: rgba(102, 169, 255, 0.08);
+  color: #0a6cff;
+  font-weight: 600;
+  pointer-events: none;
+}
+.chat-body.drag-over .drop-zone {
+  display: flex;
+}
+.image-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.image-preview-card {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.image-preview-card img {
+  display: block;
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+}
+.image-preview-card .remove-image {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+.image-message .image-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  max-width: 260px;
+  overflow: hidden;
+  border-radius: 14px;
+}
+.image-message .image-gallery img {
+  display: block;
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  background: #e5e6eb;
+}
+.image-message .image-gallery img:only-child {
+  grid-column: 1 / -1;
+  height: auto;
+  max-height: 300px;
+}
+.msg-minh.image-message .image-gallery { border-radius: 14px 14px 4px 14px; }
+.msg-them.image-message .image-gallery { border-radius: 14px 14px 14px 4px; }
+.chat-body.drag-over::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 2px dashed #66a9ff;
+  border-radius: 14px;
+  background: rgba(102, 169, 255, 0.08);
+  pointer-events: none;
+}
+@media (max-width: 850px) {
+  body { padding: 14px; }
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 560px;
+    gap: 18px;
+  }
+  .phone-frame { max-width: 500px; margin: 0 auto; }
+}
+@media (max-width: 480px) {
+  body { padding: 8px; }
+  .editor-panel { padding: 14px; }
+  .editor-grid { gap: 8px; }
+}
+</style>
+</head>
+<body>
+
+<main class="workspace">
+  <div class="editor-panel">
+    <h3>Chỉnh sửa tin nhắn</h3>
+    <div class="editor-grid">
+      <label class="editor-field">
+        <span>Ảnh đại diện</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input id="editor-avatar" type="text" value="https://i.imgur.com/6RpQ9QH.jpg" style="flex:1;">
+          <button id="choose-avatar-btn" type="button" class="camera-btn" title="Mở ảnh" aria-label="Mở ảnh">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h3l1.5-2h5L16 7h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+          </button>
+        </div>
+      </label>
+      <label class="editor-field">
+        <span>Tên người gửi</span>
+        <input id="editor-name" type="text" value="Nguyễn Nhật Ánh">
+      </label>
+      <label class="editor-field">
+        <span>Nhà mạng</span>
+        <input id="editor-carrier" type="text" value="Viettel">
+      </label>
+      <label class="editor-field">
+        <span>Loại mạng</span>
+        <input id="editor-network" type="text" value="4G">
+      </label>
+      <label class="editor-field">
+        <span>Mức pin (%)</span>
+        <input id="editor-battery" type="number" min="0" max="100" value="49">
+      </label>
+      <label class="editor-field">
+        <span>Giao diện</span>
+        <select id="editor-style">
+          <option value="android">Android</option>
+          <option value="ios">iOS</option>
+        </select>
+      </label>
+      <label class="editor-field">
+        <span>Giờ trên màn hình</span>
+        <input id="editor-clock" type="time" value="06:59">
+      </label>
+      <label class="editor-field">
+        <span>Giờ nhận tin 1</span>
+        <input id="editor-time-them-1" type="time" value="13:40">
+      </label>
+      <label class="editor-field">
+        <span>Giờ nhận tin 2</span>
+        <input id="editor-time-them-2" type="time" value="13:41">
+      </label>
+      <label class="editor-field">
+        <span>Giờ gửi tin</span>
+        <input id="editor-time-minh-1" type="time" value="13:42">
+      </label>
+      <label class="editor-field">
+        <span>Giờ nhận tin 3</span>
+        <input id="editor-time-them-3" type="time" value="13:42">
+      </label>
+    </div>
+    <h3>Soạn tin nhắn mới</h3>
+    <div class="editor-grid">
+      <label class="editor-field">
+        <span>Tin nhắn của tôi</span>
+        <textarea id="compose-me" placeholder="Nhập tin nhắn của bạn..."></textarea>
+        <button class="run-btn create-message-btn" type="button" data-create-message="me">Tạo tin nhắn mới</button>
+      </label>
+      <label class="editor-field">
+        <span>Tin nhắn đối phương</span>
+        <textarea id="compose-them" placeholder="Nhập tin nhắn đối phương..."></textarea>
+        <button class="run-btn create-message-btn" type="button" data-create-message="them">Tạo tin nhắn mới</button>
+      </label>
+    </div>
+    <h3>Thêm cuộc gọi</h3>
+    <div class="editor-grid">
+      <label class="editor-field">
+        <span>Loại cuộc gọi</span>
+        <select id="call-type">
+          <option value="missed">Cuộc gọi nhỡ</option>
+          <option value="outgoing">Cuộc gọi đi</option>
+          <option value="incoming">Cuộc gọi đến</option>
+        </select>
+      </label>
+      <label class="editor-field">
+        <span>Thời gian</span>
+        <input id="call-time" type="datetime-local">
+      </label>
+      <label class="editor-field">
+        <span>Vị trí hiển thị</span>
+        <select id="call-placement">
+          <option value="chat">Trong khung chat</option>
+          <option value="status">Góc đồng hồ trên màn hình</option>
+        </select>
+      </label>
+    </div>
+    <div class="editor-actions">
+      <button class="run-btn" id="add-call-btn" type="button">Thêm cuộc gọi vào chat</button>
+    </div>
+    <div class="editor-actions">
+      <button class="run-btn save-template-btn" id="save-template-btn" type="button">Lưu làm mẫu mặc định</button>
+      <button class="run-btn" id="apply-editor-btn">Chạy</button>
+    </div>
+  </div>
+
+  <div class="preview-column" id="preview-column">
+  <div class="preview-toolbar">
+    <button class="zoom-btn" id="zoom-preview-btn" type="button" aria-pressed="false">Phóng to khung chat</button>
+  </div>
+  <section class="phone-frame" aria-label="Bản xem trước cuộc trò chuyện">
+  <div class="status-bar android" id="status-bar">
+    <div class="status-left">
+      <span class="carrier" id="carrier-name">Viettel</span>
+      <div class="signal-bars" aria-label="signal strength">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <span id="network-type">4G</span>
+    </div>
+    <div class="status-center">
+      <span id="status-clock" title="Nhấp đúp để sửa giờ">06:59</span>
+      <span class="status-call-indicator" id="status-call-indicator" hidden></span>
+    </div>
+    <span class="dynamic-island" aria-hidden="true"></span>
+    <div class="status-right">
+      <div class="wifi-icon" id="wifi-icon" aria-hidden="true"></div>
+      <div class="battery-wrap">
+        <span class="battery" aria-label="battery level"></span>
+        <span id="battery-level">49%</span>
+      </div>
+      <button class="status-config-btn" id="status-config-btn" title="Sửa cột trạng thái">⚙</button>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- PHẦN ĐỔI ẢNH ĐẠI DIỆN + TÊN Ở ĐÂY ============= -->
+  <!-- ============================================== -->
+  <div class="header">
+    <span class="back">←</span>
+    <div class="avatar">
+      <img src="https://i.imgur.com/6RpQ9QH.jpg" alt="Avatar" id="avatar_img">
+    </div>
+    <div class="info">
+      <div class="name" id="ten_nguoi_gui">Nguyễn Nhật Ánh</div>
+      <div class="status">Hoạt động 5 phút trước</div>
+    </div>
+  </div>
+
+  <!-- Khung tin nhắn -->
+  <div class="chat-body" id="chat-body">
+    <div class="drop-zone">Thả ảnh vào đây</div>
+
+    <div class="msg-row msg-them" data-message-id="them-1">
+      <div class="msg-bubble-wrap">
+        <div class="msg-content">Chào bạn nha 😄</div>
+      </div>
+      <div class="time-text" style="margin-left: 10px;">13:40</div>
+    </div>
+
+    <div class="msg-row msg-them" data-message-id="them-2">
+      <div class="msg-bubble-wrap">
+        <div class="msg-content">Tôi vừa đọc bình luận của bạn, rất hay đó! Tôi muốn mời bạn hợp tác viết truyện cùng tôi có được không?</div>
+      </div>
+      <div class="time-text" style="margin-left: 10px;">13:41</div>
+    </div>
+
+    <div class="msg-row msg-minh" data-message-id="minh-1">
+      <div class="msg-bubble-wrap">
+        <div class="msg-content">Ối! Thật hả anh 😲 Em mơ cũng không dám nghĩ đến việc này!</div>
+      </div>
+      <div class="time-text" style="margin-right: 10px; text-align: right;">13:42</div>
+      <div class="msg-actions">
+        <button class="msg-btn" data-edit-message="minh-1">Sửa</button>
+      </div>
+    </div>
+
+    <div class="msg-row msg-them" data-message-id="them-3">
+      <div class="msg-bubble-wrap">
+        <div class="msg-content">Thật đó! Gặp nhau nói chuyện một chút được không? Tôi gửi địa chỉ cho bạn nhé</div>
+      </div>
+      <div class="time-text" style="margin-left: 10px;">13:42</div>
+    </div>
+
+  </div>
+
+  <!-- Thanh gõ tin nhắn -->
+  <div class="input-bar">
+    <button class="icon-btn" id="camera-btn" type="button" title="Chụp ảnh" aria-label="Chụp ảnh">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h3l1.5-2h5L16 7h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+    </button>
+    <button class="icon-btn" id="attach-btn" type="button" title="Đính kèm ảnh" aria-label="Đính kèm ảnh">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 5.5l-8.5 8.5a3 3 0 1 0 4.2 4.2l8.8-8.8a5 5 0 1 0-7.1-7.1L5.8 11.8"></path></svg>
+    </button>
+    <input type="text" id="message-input" placeholder="Nhập tin nhắn...">
+    <button class="send-btn" id="send-btn">➤</button>
+  </div>
+</section>
+</div>
+</main>
+
+<input type="file" id="multi-image-input" class="hidden-input" accept="image/*" multiple>
+<input type="file" id="camera-image-input" class="hidden-input" accept="image/*" capture="environment">
+
+<!-- ================================================== -->
+<!-- PHẦN NÀY ĐỔI ẢNH ĐẠI DIỆN NGAY TRONG TRANG WEB -->
+<!-- ================================================== -->
+<script>
+const link_anh_mac_dinh = "https://i.imgur.com/6RpQ9QH.jpg";
+const ten_mac_dinh = "Nguyễn Nhật Ánh";
+
+const chatBody = document.getElementById("chat-body");
+const previewColumn = document.getElementById("preview-column");
+const zoomPreviewBtn = document.getElementById("zoom-preview-btn");
+const input = document.getElementById("message-input");
+const sendBtn = document.getElementById("send-btn");
+const statusBar = document.getElementById("status-bar");
+const carrierNameEl = document.getElementById("carrier-name");
+const networkTypeEl = document.getElementById("network-type");
+const batteryLevelEl = document.getElementById("battery-level");
+const wifiIcon = document.getElementById("wifi-icon");
+const statusConfigBtn = document.getElementById("status-config-btn");
+const applyEditorBtn = document.getElementById("apply-editor-btn");
+const saveTemplateBtn = document.getElementById("save-template-btn");
+const chooseAvatarBtn = document.getElementById("choose-avatar-btn");
+const cameraBtn = document.getElementById("camera-btn");
+const attachBtn = document.getElementById("attach-btn");
+const multiImageInput = document.getElementById("multi-image-input");
+const cameraImageInput = document.getElementById("camera-image-input");
+const editorAvatar = document.getElementById("editor-avatar");
+const editorName = document.getElementById("editor-name");
+const editorCarrier = document.getElementById("editor-carrier");
+const editorNetwork = document.getElementById("editor-network");
+const editorBattery = document.getElementById("editor-battery");
+const editorStyle = document.getElementById("editor-style");
+const editorClock = document.getElementById("editor-clock");
+const composeMe = document.getElementById("compose-me");
+const composeThem = document.getElementById("compose-them");
+const callTypeInput = document.getElementById("call-type");
+const callTimeInput = document.getElementById("call-time");
+const callPlacementInput = document.getElementById("call-placement");
+const addCallBtn = document.getElementById("add-call-btn");
+const statusCallIndicator = document.getElementById("status-call-indicator");
+let statusCallData = null;
+const editorMessageTimes = {
+  "them-1": document.getElementById("editor-time-them-1"),
+  "them-2": document.getElementById("editor-time-them-2"),
+  "minh-1": document.getElementById("editor-time-minh-1"),
+  "them-3": document.getElementById("editor-time-them-3")
+};
+
+const statusConfig = {
+  carrier: "Viettel",
+  networkType: "4G",
+  battery: "49%",
+  style: "android"
+};
+
+function renderStatusBar() {
+  carrierNameEl.textContent = statusConfig.carrier || "Viettel";
+  networkTypeEl.textContent = statusConfig.networkType || "4G";
+  batteryLevelEl.textContent = statusConfig.battery;
+
+  statusBar.classList.remove("android", "ios");
+  statusBar.classList.add(statusConfig.style === "ios" ? "ios" : "android");
+
+  const networkLower = String(statusConfig.networkType || "4G").toLowerCase();
+  const isWifi = networkLower.includes("wifi") || networkLower.includes("wi-fi") || networkLower.includes("wlan");
+  const isSignalNet = networkLower.includes("4g") || networkLower.includes("5g") || networkLower.includes("3g") || networkLower.includes("lte") || networkLower.includes("lite");
+
+  wifiIcon.style.display = isWifi ? "inline-block" : "none";
+  networkTypeEl.style.display = statusConfig.style === "ios" || isWifi ? "none" : "inline";
+
+  const bars = statusBar.querySelectorAll(".signal-bars span");
+  bars.forEach((bar, index) => {
+    const active = !isWifi && index < (networkLower.includes("5g") ? 5 : networkLower.includes("4g") || networkLower.includes("lte") ? 4 : networkLower.includes("lite") ? 2 : 3);
+    bar.style.opacity = active ? "0.95" : "0.35";
+    bar.style.background = statusConfig.style === "ios" ? "rgba(17,17,17,0.95)" : "rgba(255,255,255,0.95)";
+  });
+}
+
+function updateStatusConfig() {
+  document.querySelector(".editor-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  editorCarrier.focus();
+}
+
+function applyEditorConfig() {
+  const avatarValue = editorAvatar.value.trim();
+  const nameValue = editorName.value.trim();
+  const carrierValue = editorCarrier.value.trim();
+  const networkValue = editorNetwork.value.trim();
+  const batteryValue = Number(editorBattery.value);
+  const styleValue = editorStyle.value;
+  const clockValue = editorClock.value;
+
+  if (!Number.isFinite(batteryValue) || batteryValue < 0 || batteryValue > 100) {
+    alert("Mức pin phải nằm trong khoảng từ 0 đến 100%.");
+    editorBattery.focus();
+    return;
+  }
+
+  if (avatarValue) {
+    document.getElementById("avatar_img").src = avatarValue;
+  }
+  if (nameValue) {
+    document.getElementById("ten_nguoi_gui").innerText = nameValue;
+  }
+
+  if (carrierValue) {
+    statusConfig.carrier = carrierValue;
+  }
+  if (networkValue) {
+    statusConfig.networkType = networkValue;
+  }
+  statusConfig.battery = `${batteryValue}%`;
+  if (styleValue === "ios" || styleValue === "android") {
+    statusConfig.style = styleValue;
+  }
+
+  if (clockValue) {
+    document.getElementById("status-clock").textContent = clockValue;
+  }
+
+  renderStatusBar();
+
+  Object.entries(editorMessageTimes).forEach(([messageId, timeInput]) => {
+    const timeLabel = chatBody.querySelector(`[data-message-id="${messageId}"] .time-text`);
+    if (timeLabel && timeInput.value) {
+      timeLabel.textContent = timeInput.value;
+    }
+  });
+
+  const myDraft = composeMe.value.trim();
+  const otherDraft = composeThem.value.trim();
+  if (myDraft) {
+    createChatMessage(myDraft, "me");
+    composeMe.value = "";
+  }
+  if (otherDraft) {
+    createChatMessage(otherDraft, "them");
+    composeThem.value = "";
+  }
+
+  document.querySelector(".phone-frame").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function formatTime24Hour(date) {
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).format(date);
+}
+
+function setStatusCallIndicator(type, date) {
+  const labels = {
+    missed: { short: "Nhỡ", full: "Cuộc gọi nhỡ", icon: "↙" },
+    outgoing: { short: "Đi", full: "Cuộc gọi đi", icon: "↗" },
+    incoming: { short: "Đến", full: "Cuộc gọi đến", icon: "↙" }
+  };
+  const call = labels[type];
+  if (!call || !(date instanceof Date) || Number.isNaN(date.getTime())) return false;
+
+  statusCallData = { type, date: date.toISOString() };
+  statusCallIndicator.dataset.callType = type;
+  statusCallIndicator.textContent = `${call.icon} ${call.short} ${formatTime24Hour(date)}`;
+  statusCallIndicator.title = `${call.full} · ${date.toLocaleDateString("vi-VN")} ${formatTime24Hour(date)}`;
+  statusCallIndicator.hidden = false;
+  return true;
+}
+
+function addCallEvent(type, date, placement = "chat") {
+  const labels = {
+    missed: "Cuộc gọi nhỡ",
+    outgoing: "Cuộc gọi đi",
+    incoming: "Cuộc gọi đến"
+  };
+  const label = labels[type];
+  if (!label || !(date instanceof Date) || Number.isNaN(date.getTime())) return false;
+  if (placement === "status") {
+    return setStatusCallIndicator(type, date);
+  }
+  if (placement !== "chat") return false;
+
+  const row = document.createElement("div");
+  row.className = "call-event";
+  row.dataset.callType = type;
+  row.dataset.callDate = date.toISOString();
+
+  const card = document.createElement("div");
+  card.className = "call-event-card";
+  const icon = document.createElement("span");
+  icon.className = "call-event-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = type === "missed" ? "↙" : type === "outgoing" ? "↗" : "↙";
+
+  const copy = document.createElement("span");
+  copy.className = "call-event-copy";
+  const title = document.createElement("span");
+  title.className = "call-event-title";
+  title.textContent = label;
+  const time = document.createElement("span");
+  time.className = "call-event-time";
+  time.textContent = `${date.toLocaleDateString("vi-VN")} ${formatTime24Hour(date)}`;
+
+  copy.append(title, time);
+  card.append(icon, copy);
+  row.appendChild(card);
+  chatBody.appendChild(row);
+  chatBody.scrollTop = chatBody.scrollHeight;
+  return true;
+}
+
+function addEditButton(row) {
+  row.querySelectorAll(".msg-actions").forEach((actions) => actions.remove());
+}
+
+function createChatMessage(text, side) {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+
+  const row = document.createElement("div");
+  row.className = `msg-row ${side === "me" ? "msg-minh" : "msg-them"}`;
+  row.dataset.messageId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const bubbleWrap = document.createElement("div");
+  bubbleWrap.className = "msg-bubble-wrap";
+  const content = document.createElement("div");
+  content.className = "msg-content";
+  content.textContent = trimmed;
+  bubbleWrap.appendChild(content);
+
+  const time = document.createElement("div");
+  time.className = "time-text";
+  time.textContent = formatTime24Hour(new Date());
+
+  row.appendChild(bubbleWrap);
+  row.appendChild(time);
+  addEditButton(row);
+  chatBody.appendChild(row);
+  chatBody.scrollTop = chatBody.scrollHeight;
+  return true;
+}
+
+function updateUserInfo(linkAnh, tenMoi) {
+  if (linkAnh && linkAnh.trim() !== "") {
+    document.getElementById("avatar_img").src = linkAnh.trim();
+  }
+  if (tenMoi && tenMoi.trim() !== "") {
+    document.getElementById("ten_nguoi_gui").innerText = tenMoi.trim();
+  }
+}
+
+function doiAnhVaTen() {
+  const linkAnh = prompt("Dán link ảnh đại diện vào đây:", link_anh_mac_dinh);
+  const tenMoi = prompt("Nhập tên người gửi:", ten_mac_dinh);
+  updateUserInfo(linkAnh, tenMoi);
+}
+
+function appendMyMessage(text) {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+
+  const row = document.createElement("div");
+  row.className = "msg-row msg-minh";
+  row.dataset.messageId = `minh-${Date.now()}`;
+
+  const bubbleWrap = document.createElement("div");
+  bubbleWrap.className = "msg-bubble-wrap";
+
+  const content = document.createElement("div");
+  content.className = "msg-content";
+  content.textContent = trimmed;
+
+  const time = document.createElement("div");
+  time.className = "time-text";
+  time.style.marginRight = "10px";
+  time.style.textAlign = "right";
+  time.textContent = formatTime24Hour(new Date());
+
+  bubbleWrap.appendChild(content);
+  row.appendChild(bubbleWrap);
+  row.appendChild(time);
+  addEditButton(row);
+  chatBody.appendChild(row);
+  input.value = "";
+  input.focus();
+}
+
+function appendImageMessage(files) {
+  const selectedFiles = Array.from(files);
+  const imageFiles = selectedFiles.filter((file) => file.type.startsWith("image/"));
+
+  if (imageFiles.length !== selectedFiles.length) {
+    alert("Chỉ có thể gửi tệp hình ảnh.");
+  }
+  if (!imageFiles.length) return;
+
+  const row = document.createElement("div");
+  row.className = "msg-row msg-minh image-message";
+  row.dataset.messageId = `images-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const gallery = document.createElement("div");
+  gallery.className = "image-gallery";
+
+  imageFiles.forEach((file) => {
+    const image = document.createElement("img");
+    image.src = URL.createObjectURL(file);
+    image.alt = file.name || "Ảnh đã gửi";
+    gallery.appendChild(image);
+  });
+
+  const time = document.createElement("div");
+  time.className = "time-text";
+  time.style.marginRight = "10px";
+  time.style.textAlign = "right";
+  time.textContent = formatTime24Hour(new Date());
+
+  row.appendChild(gallery);
+  row.appendChild(time);
+  chatBody.appendChild(row);
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+const DEFAULT_TEMPLATE_KEY = "zalo-chat-default-template-v1";
+
+async function imageSourceForStorage(image) {
+  const source = image.getAttribute("src") || "";
+  if (!source.startsWith("blob:")) return source;
+
+  const response = await fetch(source);
+  if (!response.ok) {
+    throw new Error("Không thể đọc một ảnh trong khung chat để lưu.");
+  }
+  const blob = await response.blob();
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Không thể chuyển ảnh sang định dạng lưu trữ."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function saveCurrentTemplate() {
+  try {
+    const rows = Array.from(chatBody.querySelectorAll(".msg-row, .call-event"));
+    const messages = await Promise.all(rows.map(async (row) => {
+      if (row.classList.contains("call-event")) {
+        return {
+          type: "call",
+          callType: row.dataset.callType,
+          callDate: row.dataset.callDate,
+          placement: "chat"
+        };
+      }
+
+      const isImage = row.classList.contains("image-message");
+      return {
+        side: row.classList.contains("msg-minh") ? "me" : "them",
+        time: row.querySelector(".time-text")?.textContent.trim() || "",
+        text: row.querySelector(".msg-content")?.textContent || "",
+        images: isImage
+          ? await Promise.all(Array.from(row.querySelectorAll(".image-gallery img"), imageSourceForStorage))
+          : []
+      };
+    }));
+
+    const template = {
+      avatar: document.getElementById("avatar_img").getAttribute("src") || "",
+      name: document.getElementById("ten_nguoi_gui").textContent,
+      carrier: statusConfig.carrier,
+      networkType: statusConfig.networkType,
+      battery: statusConfig.battery,
+      style: statusConfig.style,
+      clock: document.getElementById("status-clock").textContent,
+      statusCall: statusCallData,
+      messageTimes: Object.fromEntries(
+        Object.entries(editorMessageTimes).map(([id, field]) => [id, field.value])
+      ),
+      messages
+    };
+
+    localStorage.setItem(DEFAULT_TEMPLATE_KEY, JSON.stringify(template));
+    alert("Đã lưu mẫu mặc định trên thiết bị này.");
+  } catch (error) {
+    console.error("Không thể lưu mẫu mặc định:", error);
+    alert("Không lưu được mẫu. Hãy kiểm tra dung lượng lưu trữ của trình duyệt hoặc thử lưu lại.");
+  }
+}
+
+function restoreSavedTemplate() {
+  let saved;
+  try {
+    const stored = localStorage.getItem(DEFAULT_TEMPLATE_KEY);
+    if (!stored) return;
+    saved = JSON.parse(stored);
+  } catch (error) {
+    console.error("Không thể đọc mẫu mặc định:", error);
+    alert("Không thể đọc mẫu đã lưu. Dữ liệu lưu có thể bị hỏng.");
+    return;
+  }
+
+  if (!saved || !Array.isArray(saved.messages)) {
+    alert("Mẫu đã lưu không hợp lệ.");
+    return;
+  }
+
+  if (typeof saved.avatar === "string") {
+    document.getElementById("avatar_img").src = saved.avatar;
+    editorAvatar.value = saved.avatar;
+  }
+  if (typeof saved.name === "string") {
+    document.getElementById("ten_nguoi_gui").textContent = saved.name;
+    editorName.value = saved.name;
+  }
+
+  statusConfig.carrier = saved.carrier || statusConfig.carrier;
+  statusConfig.networkType = saved.networkType || statusConfig.networkType;
+  statusConfig.battery = saved.battery || statusConfig.battery;
+  statusConfig.style = saved.style === "ios" ? "ios" : "android";
+  editorCarrier.value = statusConfig.carrier;
+  editorNetwork.value = statusConfig.networkType;
+  editorBattery.value = String(parseInt(statusConfig.battery, 10));
+  editorStyle.value = statusConfig.style;
+  if (saved.messageTimes && typeof saved.messageTimes === "object") {
+    Object.entries(editorMessageTimes).forEach(([id, field]) => {
+      if (typeof saved.messageTimes[id] === "string") {
+        field.value = saved.messageTimes[id];
+      }
+    });
+  }
+  if (typeof saved.clock === "string") {
+    document.getElementById("status-clock").textContent = saved.clock;
+    editorClock.value = saved.clock;
+  }
+  statusCallData = null;
+  statusCallIndicator.hidden = true;
+  if (saved.statusCall && typeof saved.statusCall.type === "string" && typeof saved.statusCall.date === "string") {
+    setStatusCallIndicator(saved.statusCall.type, new Date(saved.statusCall.date));
+  }
+  renderStatusBar();
+
+  chatBody.querySelectorAll(".msg-row").forEach((row) => row.remove());
+  chatBody.querySelectorAll(".call-event").forEach((row) => row.remove());
+  saved.messages.forEach((message) => {
+    if (message.type === "call") {
+      const callDate = new Date(message.callDate);
+      if (addCallEvent(message.callType, callDate, message.placement || "chat")) return;
+      return;
+    }
+
+    const row = document.createElement("div");
+    row.className = `msg-row ${message.side === "me" ? "msg-minh" : "msg-them"}`;
+    if (Array.isArray(message.images) && message.images.length) {
+      row.classList.add("image-message");
+      const gallery = document.createElement("div");
+      gallery.className = "image-gallery";
+      message.images.forEach((source) => {
+        if (typeof source !== "string") return;
+        const image = document.createElement("img");
+        image.src = source;
+        image.alt = "Ảnh đã gửi";
+        gallery.appendChild(image);
+      });
+      row.appendChild(gallery);
+    } else {
+      const bubbleWrap = document.createElement("div");
+      bubbleWrap.className = "msg-bubble-wrap";
+      const content = document.createElement("div");
+      content.className = "msg-content";
+      content.textContent = typeof message.text === "string" ? message.text : "";
+      bubbleWrap.appendChild(content);
+      row.appendChild(bubbleWrap);
+    }
+
+    const time = document.createElement("div");
+    time.className = "time-text";
+    time.textContent = typeof message.time === "string" ? message.time : "";
+    row.appendChild(time);
+    chatBody.appendChild(row);
+  });
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+function sendMessage() {
+  appendMyMessage(input.value);
+}
+
+function startInlineEdit(target) {
+  if (target.querySelector("input")) return;
+
+  const isStatusClock = target.id === "status-clock";
+  const isTime = target.classList.contains("time-text") || isStatusClock;
+  const originalText = target.textContent.trim();
+  const field = document.createElement("input");
+  field.className = "inline-edit";
+  field.type = "text";
+  field.value = originalText;
+  if (isTime) {
+    field.inputMode = "numeric";
+    field.maxLength = 5;
+    field.placeholder = "HH:MM";
+    field.setAttribute("aria-label", isStatusClock
+      ? "Sửa giờ trên thanh trạng thái theo định dạng 24 giờ"
+      : "Sửa giờ tin nhắn theo định dạng 24 giờ");
+  } else {
+    field.setAttribute("aria-label", "Sửa nội dung tin nhắn");
+  }
+
+  let finished = false;
+  const finish = (save) => {
+    if (finished) return;
+    finished = true;
+    const nextText = field.value.trim();
+    if (save && nextText && (!isTime || /^([01]\d|2[0-3]):[0-5]\d$/.test(nextText))) {
+      target.textContent = nextText;
+      if (isStatusClock) editorClock.value = nextText;
+    } else {
+      target.textContent = originalText;
+      if (save && isTime && nextText) {
+        alert("Nhập giờ theo định dạng 24 giờ, ví dụ 15:00.");
+      }
+    }
+  };
+
+  field.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      finish(true);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      finish(false);
+    }
+  });
+  field.addEventListener("blur", () => finish(true));
+  target.textContent = "";
+  target.appendChild(field);
+  field.focus();
+  field.select();
+}
+
+sendBtn.addEventListener("click", sendMessage);
+input.addEventListener("keydown", function (event) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    sendMessage();
+  }
+});
+
+document.querySelectorAll("[data-create-message]").forEach((button) => {
+  button.addEventListener("click", function () {
+    const isMine = button.dataset.createMessage === "me";
+    const composer = isMine ? composeMe : composeThem;
+    if (createChatMessage(composer.value, isMine ? "me" : "them")) {
+      composer.value = "";
+      composer.focus();
+    }
+  });
+});
+
+addCallBtn.addEventListener("click", function () {
+  if (!callTimeInput.value) {
+    alert("Hãy chọn ngày giờ cho cuộc gọi.");
+    callTimeInput.focus();
+    return;
+  }
+
+  const callDate = new Date(callTimeInput.value);
+  if (!addCallEvent(callTypeInput.value, callDate, callPlacementInput.value)) {
+    alert("Không thể thêm cuộc gọi. Hãy kiểm tra loại và thời gian đã chọn.");
+  }
+});
+
+attachBtn.addEventListener("click", function () {
+  multiImageInput.click();
+});
+
+multiImageInput.addEventListener("change", function () {
+  appendImageMessage(multiImageInput.files || []);
+  multiImageInput.value = "";
+});
+
+cameraBtn.addEventListener("click", function () {
+  cameraImageInput.click();
+});
+
+cameraImageInput.addEventListener("change", function () {
+  appendImageMessage(cameraImageInput.files || []);
+  cameraImageInput.value = "";
+});
+
+chatBody.addEventListener("dragenter", function (event) {
+  event.preventDefault();
+  chatBody.classList.add("drag-over");
+});
+
+chatBody.addEventListener("dragover", function (event) {
+  event.preventDefault();
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = "copy";
+  }
+  chatBody.classList.add("drag-over");
+});
+
+chatBody.addEventListener("dragleave", function (event) {
+  if (!event.relatedTarget || !chatBody.contains(event.relatedTarget)) {
+    chatBody.classList.remove("drag-over");
+  }
+});
+
+chatBody.addEventListener("drop", function (event) {
+  event.preventDefault();
+  chatBody.classList.remove("drag-over");
+  if (event.dataTransfer && event.dataTransfer.files.length) {
+    appendImageMessage(event.dataTransfer.files);
+  }
+});
+
+chatBody.addEventListener("dblclick", function (event) {
+  const target = event.target.closest(".msg-content, .time-text");
+  if (!target) return;
+  startInlineEdit(target);
+});
+
+const chatContextMenu = document.createElement("div");
+chatContextMenu.className = "chat-context-menu";
+chatContextMenu.setAttribute("role", "menu");
+chatContextMenu.hidden = true;
+const deleteChatItemButton = document.createElement("button");
+deleteChatItemButton.type = "button";
+deleteChatItemButton.setAttribute("role", "menuitem");
+deleteChatItemButton.textContent = "Xóa";
+chatContextMenu.appendChild(deleteChatItemButton);
+document.body.appendChild(chatContextMenu);
+
+let contextMenuItem = null;
+let longPressTimer = null;
+let longPressStart = null;
+
+function hideChatContextMenu() {
+  chatContextMenu.hidden = true;
+  contextMenuItem = null;
+}
+
+function showChatContextMenu(item, x, y) {
+  if (!item || !chatBody.contains(item)) return;
+  contextMenuItem = item;
+  chatContextMenu.hidden = false;
+  const margin = 8;
+  const left = Math.max(margin, Math.min(x, window.innerWidth - chatContextMenu.offsetWidth - margin));
+  const top = Math.max(margin, Math.min(y, window.innerHeight - chatContextMenu.offsetHeight - margin));
+  chatContextMenu.style.left = `${left}px`;
+  chatContextMenu.style.top = `${top}px`;
+}
+
+function clearLongPress() {
+  if (longPressTimer) {
+    window.clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+  longPressStart = null;
+}
+
+chatBody.addEventListener("pointerdown", function (event) {
+  if (event.button !== 0) return;
+  const item = event.target.closest(".msg-row, .call-event");
+  if (!item) return;
+
+  clearLongPress();
+  longPressStart = { x: event.clientX, y: event.clientY };
+  longPressTimer = window.setTimeout(function () {
+    event.preventDefault();
+    showChatContextMenu(item, event.clientX, event.clientY);
+    longPressTimer = null;
+  }, 600);
+});
+
+chatBody.addEventListener("pointermove", function (event) {
+  if (!longPressStart) return;
+  const movedX = Math.abs(event.clientX - longPressStart.x);
+  const movedY = Math.abs(event.clientY - longPressStart.y);
+  if (movedX > 10 || movedY > 10) clearLongPress();
+});
+
+chatBody.addEventListener("pointerup", clearLongPress);
+chatBody.addEventListener("pointercancel", clearLongPress);
+
+chatBody.addEventListener("contextmenu", function (event) {
+  const item = event.target.closest(".msg-row, .call-event");
+  if (!item) return;
+  event.preventDefault();
+  clearLongPress();
+  showChatContextMenu(item, event.clientX, event.clientY);
+});
+
+deleteChatItemButton.addEventListener("click", function () {
+  if (contextMenuItem && chatBody.contains(contextMenuItem)) {
+    contextMenuItem.remove();
+  }
+  hideChatContextMenu();
+});
+
+document.addEventListener("pointerdown", function (event) {
+  if (!chatContextMenu.hidden && !chatContextMenu.contains(event.target)) {
+    hideChatContextMenu();
+  }
+});
+
+document.getElementById("status-clock").addEventListener("dblclick", function () {
+  startInlineEdit(this);
+});
+
+statusConfigBtn.addEventListener("click", updateStatusConfig);
+applyEditorBtn.addEventListener("click", applyEditorConfig);
+saveTemplateBtn.addEventListener("click", saveCurrentTemplate);
+zoomPreviewBtn.addEventListener("click", function () {
+  const expanded = previewColumn.classList.toggle("is-expanded");
+  zoomPreviewBtn.textContent = expanded ? "Thu nhỏ khung chat" : "Phóng to khung chat";
+  zoomPreviewBtn.setAttribute("aria-pressed", String(expanded));
+  document.body.style.overflow = expanded ? "hidden" : "";
+  if (expanded) {
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+});
+
+document.addEventListener("keydown", function (event) {
+  if (event.key === "Escape" && !chatContextMenu.hidden) {
+    hideChatContextMenu();
+  }
+  if (event.key === "Escape" && previewColumn.classList.contains("is-expanded")) {
+    previewColumn.classList.remove("is-expanded");
+    zoomPreviewBtn.textContent = "Phóng to khung chat";
+    zoomPreviewBtn.setAttribute("aria-pressed", "false");
+    document.body.style.overflow = "";
+  }
+});
+
+chooseAvatarBtn.addEventListener("click", function () {
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = "image/*";
+  fileInput.capture = "environment";
+
+  fileInput.addEventListener("change", function (event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const result = e.target.result;
+      editorAvatar.value = result;
+      document.getElementById("avatar_img").src = result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  fileInput.click();
+});
+
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  chooseAvatarBtn.addEventListener("dblclick", function () {
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(function (stream) {
+        const video = document.createElement("video");
+        video.srcObject = stream;
+        video.play();
+
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+
+        setTimeout(function () {
+          canvas.width = video.videoWidth || 320;
+          canvas.height = video.videoHeight || 240;
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL("image/jpeg");
+          editorAvatar.value = dataUrl;
+          document.getElementById("avatar_img").src = dataUrl;
+
+          stream.getTracks().forEach(function (track) {
+            track.stop();
+          });
+        }, 500);
+      })
+      .catch(function () {
+        alert("Không thể mở camera trên thiết bị này. Hãy dùng Chọn file.");
+      });
+  });
+}
+
+document.addEventListener("keydown", function (e) {
+  if (e.ctrlKey && e.key === "e") {
+    e.preventDefault();
+    doiAnhVaTen();
+  }
+
+  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "s") {
+    e.preventDefault();
+    updateStatusConfig();
+  }
+});
+
+window.addEventListener("load", function () {
+  if (!callTimeInput.value) {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    callTimeInput.value = now.toISOString().slice(0, 16);
+  }
+  restoreSavedTemplate();
+  chatBody.querySelectorAll(".msg-row:not(.image-message)").forEach(addEditButton);
+  renderStatusBar();
+  console.log("=== HƯỚNG DẪN ===");
+  console.log("Nhấn Ctrl + E để đổi ảnh đại diện & tên");
+  console.log("Nhấn Ctrl + Shift + S để sửa cột trạng thái điện thoại");
+  console.log("Nhấn nút 📷 để chọn ảnh mới từ máy tính");
+  console.log("Nhấn nút Sửa bên tin nhắn của bạn để chỉnh sửa nội dung");
+});
+</script>
+
+</body>
+</html>
